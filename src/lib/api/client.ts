@@ -1,0 +1,44 @@
+import type { ClothingItem, RecommendationWithItems, UsageStats } from '@/types';
+
+export async function fetchWardrobe(): Promise<ClothingItem[]> {
+  const res = await fetch('/api/clothes');
+  if (!res.ok) throw new Error('Failed to fetch wardrobe');
+  return res.json();
+}
+
+export async function uploadClothing(file: File): Promise<ClothingItem> {
+  const body = new FormData();
+  body.append('file', file);
+  const res = await fetch('/api/clothes', { method: 'POST', body });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Upload failed');
+  return data;
+}
+
+export async function deleteClothing(id: string): Promise<void> {
+  const res = await fetch(`/api/clothes/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || 'Delete failed');
+  }
+}
+
+export async function fetchRecommendation(): Promise<RecommendationWithItems> {
+  const res = await fetch('/api/recommend');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to get recommendation');
+  return data;
+}
+
+export async function regenerateRecommendation(): Promise<RecommendationWithItems> {
+  const res = await fetch('/api/recommend', { method: 'POST' });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to regenerate recommendation');
+  return data;
+}
+
+export async function fetchUsage(): Promise<UsageStats> {
+  const res = await fetch('/api/usage');
+  if (!res.ok) throw new Error('Failed to fetch usage');
+  return res.json();
+}
