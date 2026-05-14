@@ -1,5 +1,6 @@
 import { getAIProvider } from '@/lib/ai/provider';
 import { getAllClothingItems, getClothingItemById } from '@/lib/db/clothes';
+import { signImageUrl } from '@/lib/storage';
 import {
   getTodaysRecommendation,
   insertRecommendation,
@@ -10,7 +11,9 @@ import type { ClothingItem, OutfitRecommendation, RecommendationWithItems } from
 async function hydrateItems(rec: OutfitRecommendation): Promise<RecommendationWithItems> {
   const items: ClothingItem[] = (
     await Promise.all(rec.item_ids.map(id => getClothingItemById(id)))
-  ).filter((item): item is ClothingItem => item !== null);
+  )
+    .filter((item): item is ClothingItem => item !== null)
+    .map(item => ({ ...item, image_url: signImageUrl(item.image_url) }));
   return { ...rec, items };
 }
 

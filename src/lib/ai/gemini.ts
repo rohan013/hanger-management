@@ -12,7 +12,7 @@ export class GeminiProvider implements WardrobeAIProvider {
       throw new Error('GEMINI_API_KEY environment variable is required');
     }
     this.client = new GoogleGenerativeAI(apiKey);
-    this.modelName = process.env.AI_MODEL || 'gemini-1.5-flash';
+    this.modelName = process.env.AI_MODEL || 'gemini-2.5-flash';
   }
 
   async analyzeClothing(imageBuffer: Buffer, mimeType: string): Promise<ClothingAnalysis> {

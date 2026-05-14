@@ -1,6 +1,6 @@
 import { STORAGE_CONFIG } from '@/lib/config';
 import { processImage } from '@/lib/image';
-import { uploadImage, deleteImage } from '@/lib/storage';
+import { uploadImage, deleteImage, signImageUrl } from '@/lib/storage';
 import { getAIProvider } from '@/lib/ai/provider';
 import {
   getAllClothingItems,
@@ -12,7 +12,8 @@ import {
 import type { ClothingItem } from '@/types';
 
 export async function listClothingItems(): Promise<ClothingItem[]> {
-  return getAllClothingItems();
+  const items = await getAllClothingItems();
+  return items.map(item => ({ ...item, image_url: signImageUrl(item.image_url) }));
 }
 
 export async function uploadClothingItem(file: File): Promise<ClothingItem> {
@@ -28,7 +29,8 @@ export async function uploadClothingItem(file: File): Promise<ClothingItem> {
   const filename = `clothing/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}.jpg`;
   const { url, pathname } = await uploadImage(filename, compressed);
   const analysis = await getAIProvider().analyzeClothing(compressed, 'image/jpeg');
-  return insertClothingItem({ ...analysis, image_url: url, blob_pathname: pathname });
+  const item = await insertClothingItem({ ...analysis, image_url: url, blob_pathname: pathname });
+  return { ...item, image_url: signImageUrl(item.image_url) };
 }
 
 export async function removeClothingItem(id: string): Promise<void> {
