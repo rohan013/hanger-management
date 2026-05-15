@@ -1,5 +1,5 @@
 import { STORAGE_CONFIG } from '@/lib/config';
-import { processImage } from '@/lib/image';
+import { processImage, removeBackground } from '@/lib/image';
 import { uploadImage, deleteImage, signImageUrl } from '@/lib/storage';
 import { getAIProvider } from '@/lib/ai/provider';
 import {
@@ -25,10 +25,13 @@ export async function uploadClothingItem(file: File): Promise<ClothingItem> {
     throw new Error(`Wardrobe is full. Maximum ${STORAGE_CONFIG.MAX_CLOTHING_ITEMS} items allowed.`);
   }
   const rawBuffer = Buffer.from(await file.arrayBuffer());
-  const compressed = await processImage(rawBuffer);
-  const filename = `clothing/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}.jpg`;
+  const withoutBg = await removeBackground(rawBuffer);
+  const { buffer: compressed, format } = await processImage(withoutBg);
+  const sanitized = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const filename = `clothing/${Date.now()}-${sanitized}.${format === 'png' ? 'png' : 'jpg'}`;
   const { url, pathname } = await uploadImage(filename, compressed);
-  const analysis = await getAIProvider().analyzeClothing(compressed, 'image/jpeg');
+  const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+  const analysis = await getAIProvider().analyzeClothing(compressed, mimeType);
   const item = await insertClothingItem({ ...analysis, image_url: url, blob_pathname: pathname });
   return { ...item, image_url: signImageUrl(item.image_url) };
 }
