@@ -10,6 +10,12 @@ const nextConfig = {
         hostname: '**.blob.vercel-storage.com',
       },
     ],
+    localPatterns: [
+      {
+        pathname: '/api/image',
+        search: '?**',
+      },
+    ],
   },
 };
 
