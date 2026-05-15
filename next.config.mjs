@@ -13,7 +13,6 @@ const nextConfig = {
     localPatterns: [
       {
         pathname: '/api/image',
-        search: '?**',
       },
     ],
   },
