@@ -1,7 +1,7 @@
 import { put, del, list } from '@vercel/blob';
 
-export async function uploadImage(pathname: string, buffer: Buffer): Promise<{ url: string; pathname: string }> {
-  const blob = await put(pathname, buffer, { access: 'private', contentType: 'image/jpeg' });
+export async function uploadImage(pathname: string, buffer: Buffer, contentType = 'image/jpeg'): Promise<{ url: string; pathname: string }> {
+  const blob = await put(pathname, buffer, { access: 'private', contentType });
   return { url: blob.url, pathname: blob.pathname };
 }
 
