@@ -8,9 +8,10 @@ import type { ClothingItem } from '@/types';
 interface ClothingCardProps {
   item: ClothingItem;
   onDelete?: (id: string) => void;
+  onEdit?: (item: ClothingItem) => void;
 }
 
-export default function ClothingCard({ item, onDelete }: ClothingCardProps) {
+export default function ClothingCard({ item, onDelete, onEdit }: ClothingCardProps) {
   const [showDelete, setShowDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,7 +66,7 @@ export default function ClothingCard({ item, onDelete }: ClothingCardProps) {
       onMouseLeave={handleLongPressEnd}
       onTouchStart={handleLongPressStart}
       onTouchEnd={handleLongPressEnd}
-      onClick={() => setShowDelete(prev => !prev)}
+      onClick={() => { if (showDelete) setShowDelete(false); else onEdit?.(item); }}
     >
       {/* Image */}
       <div className="relative aspect-square bg-gray-50">
@@ -119,17 +120,6 @@ export default function ClothingCard({ item, onDelete }: ClothingCardProps) {
         </div>
       )}
 
-      {/* Quick delete X button (always visible on hover via desktop) */}
-      {!showDelete && onDelete && (
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 bg-white/80 backdrop-blur-sm text-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold shadow hover:bg-red-500 hover:text-white transition-all"
-          aria-label="Delete item"
-        >
-          ×
-        </button>
-      )}
     </div>
   );
 }

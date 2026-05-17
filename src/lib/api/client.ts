@@ -15,6 +15,20 @@ export async function uploadClothing(file: File): Promise<ClothingItem> {
   return data;
 }
 
+export async function updateClothing(
+  id: string,
+  data: { category: string; colors: string[]; color_names: string[]; description: string | null; tags: string[] }
+): Promise<ClothingItem> {
+  const res = await fetch(`/api/clothes/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Update failed');
+  return json as ClothingItem;
+}
+
 export async function deleteClothing(id: string): Promise<void> {
   const res = await fetch(`/api/clothes/${id}`, { method: 'DELETE' });
   if (!res.ok) {

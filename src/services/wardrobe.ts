@@ -6,6 +6,7 @@ import {
   getAllClothingItems,
   getClothingItemById,
   insertClothingItem,
+  updateClothingItem,
   deleteClothingItem,
   getClothingItemCount,
 } from '@/lib/db/clothes';
@@ -33,6 +34,15 @@ export async function uploadClothingItem(file: File): Promise<ClothingItem> {
   const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
   const analysis = await getAIProvider().analyzeClothing(compressed, mimeType);
   const item = await insertClothingItem({ ...analysis, image_url: url, blob_pathname: pathname });
+  return { ...item, image_url: signImageUrl(item.image_url) };
+}
+
+export async function editClothingItem(
+  id: string,
+  data: { category: string; colors: string[]; color_names: string[]; description: string | null; tags: string[] }
+): Promise<ClothingItem> {
+  const item = await updateClothingItem(id, data);
+  if (!item) throw new Error('Item not found');
   return { ...item, image_url: signImageUrl(item.image_url) };
 }
 

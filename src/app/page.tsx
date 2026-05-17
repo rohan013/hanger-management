@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import ClothingCard from '@/components/ClothingCard';
+import EditItemModal from '@/components/EditItemModal';
 import UsageWarning from '@/components/UsageWarning';
 import { fetchWardrobe } from '@/lib/api/client';
 import type { ClothingItem } from '@/types';
@@ -11,6 +12,7 @@ export default function WardrobePage() {
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -31,6 +33,15 @@ export default function WardrobePage() {
 
   const handleDelete = useCallback((id: string) => {
     setItems(prev => prev.filter(item => item.id !== id));
+  }, []);
+
+  const handleEdit = useCallback((item: ClothingItem) => {
+    setEditingItem(item);
+  }, []);
+
+  const handleSaveEdit = useCallback((updated: ClothingItem) => {
+    setItems(prev => prev.map(i => i.id === updated.id ? updated : i));
+    setEditingItem(null);
   }, []);
 
   return (
@@ -117,9 +128,16 @@ export default function WardrobePage() {
       {!loading && !error && items.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {items.map(item => (
-            <ClothingCard key={item.id} item={item} onDelete={handleDelete} />
+            <ClothingCard key={item.id} item={item} onDelete={handleDelete} onEdit={handleEdit} />
           ))}
         </div>
+      )}
+      {editingItem && (
+        <EditItemModal
+          item={editingItem}
+          onClose={() => setEditingItem(null)}
+          onSave={handleSaveEdit}
+        />
       )}
     </div>
   );
