@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import Navigation from '@/components/Navigation';
+import NavigationWrapper from '@/components/NavigationWrapper';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,7 +29,7 @@ export default function RootLayout({
         <main className="max-w-2xl mx-auto pb-24 min-h-screen">
           {children}
         </main>
-        <Navigation />
+        <NavigationWrapper />
       </body>
     </html>
   );
