@@ -99,13 +99,50 @@ export default function EditItemModal({ item, onClose, onSave, onDelete }: EditI
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-lg font-bold text-gray-900">Edit Item</h2>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 text-xl font-bold"
-            >
-              ×
-            </button>
+            <div className="flex items-center gap-2">
+              {!confirmDelete && (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  disabled={saving || deleting}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 disabled:opacity-40"
+                  aria-label="Delete item"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+                  </svg>
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 text-xl font-bold"
+              >
+                ×
+              </button>
+            </div>
           </div>
+
+          {/* Delete confirmation */}
+          {confirmDelete && (
+            <div className="mb-5 bg-red-50 border border-red-200 rounded-2xl p-4">
+              <p className="text-sm text-red-700 font-medium text-center mb-3">Delete this item permanently?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="flex-1 bg-white border border-gray-200 text-gray-600 rounded-xl py-2.5 font-semibold text-sm hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 bg-red-500 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-red-600 active:scale-95 transition-all disabled:opacity-60"
+                >
+                  {deleting ? 'Deleting…' : 'Yes, Delete'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Thumbnail + category */}
           <div className="flex gap-3 mb-5">
@@ -234,37 +271,6 @@ export default function EditItemModal({ item, onClose, onSave, onDelete }: EditI
           >
             Cancel
           </button>
-
-          {/* Delete */}
-          {!confirmDelete ? (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              disabled={saving || deleting}
-              className="w-full text-red-500 rounded-2xl py-3 font-semibold text-sm mt-1 hover:bg-red-50 active:scale-95 transition-all disabled:opacity-60"
-            >
-              Delete Item
-            </button>
-          ) : (
-            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4">
-              <p className="text-sm text-red-700 font-medium text-center mb-3">Delete this item permanently?</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  disabled={deleting}
-                  className="flex-1 bg-white border border-gray-200 text-gray-600 rounded-xl py-2.5 font-semibold text-sm hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="flex-1 bg-red-500 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-red-600 active:scale-95 transition-all disabled:opacity-60"
-                >
-                  {deleting ? 'Deleting…' : 'Yes, Delete'}
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
