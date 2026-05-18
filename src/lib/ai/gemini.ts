@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import type { WardrobeAIProvider } from './types';
 import type { ClothingAnalysis, ClothingItem } from '@/types';
+import { logger } from '@/lib/logger';
 
 export class GeminiProvider implements WardrobeAIProvider {
   private client: GoogleGenerativeAI;
@@ -36,6 +37,7 @@ export class GeminiProvider implements WardrobeAIProvider {
 
 Be accurate with hex colors - sample the actual dominant colors in the image. Include 1-4 colors.`;
 
+    logger.info('calling Gemini: analyze clothing', { model: this.modelName, mimeType });
     const result = await model.generateContent([prompt, imagePart]);
     const text = result.response.text().trim();
 
@@ -44,14 +46,17 @@ Be accurate with hex colors - sample the actual dominant colors in the image. In
 
     try {
       const parsed = JSON.parse(jsonText);
-      return {
+      const analysis = {
         category: parsed.category || 'other',
         colors: Array.isArray(parsed.colors) ? parsed.colors : [],
         color_names: Array.isArray(parsed.color_names) ? parsed.color_names : [],
         description: parsed.description || '',
         tags: Array.isArray(parsed.tags) ? parsed.tags : [],
       };
+      logger.info('Gemini response: analyze clothing', { category: analysis.category, tags: analysis.tags });
+      return analysis;
     } catch {
+      logger.error('Gemini response parse failed: analyze clothing', { response: text.substring(0, 200) });
       throw new Error(`Failed to parse Gemini response as JSON: ${text.substring(0, 200)}`);
     }
   }
@@ -90,6 +95,7 @@ Respond with ONLY a valid JSON object (no markdown, no code blocks):
 
 Select items that work well together stylistically and for the current season (May, spring). Prioritize color harmony.`;
 
+    logger.info('calling Gemini: recommend outfit', { model: this.modelName, itemCount: items.length });
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     const jsonText = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
@@ -104,14 +110,17 @@ Select items that work well together stylistically and for the current season (M
       // Ensure at least one valid item
       const finalIds = filteredIds.length > 0 ? filteredIds : [items[0]?.id].filter(Boolean);
 
-      return {
+      const recommendation = {
         item_ids: finalIds,
         explanation: parsed.explanation || 'A stylish outfit for today.',
         color_scheme: parsed.color_scheme || 'neutral',
         color_theory_description: parsed.color_theory_description || 'Colors work harmoniously together.',
         palette_colors: Array.isArray(parsed.palette_colors) ? parsed.palette_colors : [],
       };
+      logger.info('Gemini response: recommend outfit', { selectedItemCount: finalIds.length, colorScheme: recommendation.color_scheme });
+      return recommendation;
     } catch {
+      logger.error('Gemini response parse failed: recommend outfit', { response: text.substring(0, 200) });
       throw new Error(`Failed to parse Gemini recommendation response: ${text.substring(0, 200)}`);
     }
   }

@@ -1,4 +1,5 @@
 import { STORAGE_CONFIG } from '@/lib/config';
+import { logger } from '@/lib/logger';
 import { processImage, removeBackground } from '@/lib/image';
 import { uploadImage, deleteImage, signImageUrl } from '@/lib/storage';
 import { getAIProvider } from '@/lib/ai/provider';
@@ -25,15 +26,20 @@ export async function uploadClothingItem(file: File): Promise<ClothingItem> {
   if (count >= STORAGE_CONFIG.MAX_CLOTHING_ITEMS) {
     throw new Error(`Wardrobe is full. Maximum ${STORAGE_CONFIG.MAX_CLOTHING_ITEMS} items allowed.`);
   }
+  const sanitized = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  logger.info('removing background', { filename: sanitized, sizeBytes: file.size });
   const rawBuffer = Buffer.from(await file.arrayBuffer());
   const withoutBg = await removeBackground(rawBuffer);
+  logger.info('processing image', { filename: sanitized });
   const { buffer: compressed, format } = await processImage(withoutBg);
-  const sanitized = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
   const filename = `clothing/${Date.now()}-${sanitized}.${format === 'png' ? 'png' : 'jpg'}`;
+  logger.info('uploading image to blob storage', { filename });
   const { url, pathname } = await uploadImage(filename, compressed);
   const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
+  logger.info('analyzing clothing with AI', { filename });
   const analysis = await getAIProvider().analyzeClothing(compressed, mimeType);
   const item = await insertClothingItem({ ...analysis, image_url: url, blob_pathname: pathname });
+  logger.info('clothing item created', { id: item.id, category: item.category });
   return { ...item, image_url: signImageUrl(item.image_url) };
 }
 
