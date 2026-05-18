@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { updateClothing } from '@/lib/api/client';
+import { updateClothing, deleteClothing } from '@/lib/api/client';
 import type { ClothingItem } from '@/types';
 
 const CATEGORIES = [
@@ -16,9 +16,10 @@ interface EditItemModalProps {
   item: ClothingItem;
   onClose: () => void;
   onSave: (updated: ClothingItem) => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function EditItemModal({ item, onClose, onSave }: EditItemModalProps) {
+export default function EditItemModal({ item, onClose, onSave, onDelete }: EditItemModalProps) {
   const [category, setCategory] = useState(item.category);
   const [colorPairs, setColorPairs] = useState<ColorPair[]>(
     item.colors.map((hex, i) => ({ hex, name: item.color_names[i] ?? '' }))
@@ -27,6 +28,8 @@ export default function EditItemModal({ item, onClose, onSave }: EditItemModalPr
   const [tags, setTags] = useState<string[]>(item.tags ?? []);
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,6 +63,20 @@ export default function EditItemModal({ item, onClose, onSave }: EditItemModalPr
       setTagInput('');
     }
   }, [tagInput, tags]);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteClothing(item.id);
+      onDelete?.(item.id);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Delete failed');
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  };
 
   const addColorPair = () => setColorPairs(prev => [...prev, { hex: '#000000', name: '' }]);
   const removeColorPair = (i: number) => setColorPairs(prev => prev.filter((_, idx) => idx !== i));
@@ -212,11 +229,42 @@ export default function EditItemModal({ item, onClose, onSave }: EditItemModalPr
           </button>
           <button
             onClick={onClose}
-            disabled={saving}
+            disabled={saving || deleting}
             className="w-full bg-gray-100 text-gray-600 rounded-2xl py-3.5 font-semibold text-sm mt-2 hover:bg-gray-200 active:scale-95 transition-all disabled:opacity-60"
           >
             Cancel
           </button>
+
+          {/* Delete */}
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={saving || deleting}
+              className="w-full text-red-500 rounded-2xl py-3 font-semibold text-sm mt-1 hover:bg-red-50 active:scale-95 transition-all disabled:opacity-60"
+            >
+              Delete Item
+            </button>
+          ) : (
+            <div className="mt-2 bg-red-50 border border-red-200 rounded-2xl p-4">
+              <p className="text-sm text-red-700 font-medium text-center mb-3">Delete this item permanently?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="flex-1 bg-white border border-gray-200 text-gray-600 rounded-xl py-2.5 font-semibold text-sm hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 bg-red-500 text-white rounded-xl py-2.5 font-semibold text-sm hover:bg-red-600 active:scale-95 transition-all disabled:opacity-60"
+                >
+                  {deleting ? 'Deleting…' : 'Yes, Delete'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

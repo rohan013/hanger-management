@@ -137,6 +137,7 @@ export default function WardrobePage() {
           item={editingItem}
           onClose={() => setEditingItem(null)}
           onSave={handleSaveEdit}
+          onDelete={(id) => { handleDelete(id); setEditingItem(null); }}
         />
       )}
     </div>
