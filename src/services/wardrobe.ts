@@ -18,7 +18,9 @@ export async function listClothingItems(): Promise<ClothingItem[]> {
 
 export async function uploadClothingItem(blobUrl: string, blobPathname: string): Promise<ClothingItem> {
   logger.info('downloading raw upload', { blobPathname });
-  const response = await fetch(blobUrl);
+  const response = await fetch(blobUrl, {
+    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
+  });
   if (!response.ok) throw new Error('Failed to download uploaded image');
   const rawBuffer = Buffer.from(await response.arrayBuffer());
 

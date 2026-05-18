@@ -9,7 +9,7 @@ export async function fetchWardrobe(): Promise<ClothingItem[]> {
 
 export async function uploadClothing(file: File): Promise<ClothingItem> {
   const blob = await upload(file.name, file, {
-    access: 'public',
+    access: 'private',
     handleUploadUrl: '/api/upload',
   });
   const res = await fetch('/api/clothes', {
