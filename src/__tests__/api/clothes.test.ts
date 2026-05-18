@@ -52,12 +52,11 @@ describe('GET /api/clothes', () => {
 })
 
 describe('POST /api/clothes', () => {
-  const makeRequest = (formData: { get: ReturnType<typeof vi.fn> }) =>
-    ({ formData: vi.fn().mockResolvedValue(formData) }) as unknown as NextRequest
+  const makeRequest = (body: object) =>
+    ({ json: vi.fn().mockResolvedValue(body) }) as unknown as NextRequest
 
   it('returns 201 with uploaded item on success', async () => {
-    const mockFile = new File(['data'], 'shirt.jpg', { type: 'image/jpeg' })
-    const req = makeRequest({ get: vi.fn().mockReturnValue(mockFile) })
+    const req = makeRequest({ blobUrl: 'https://blob.url/raw.jpg', blobPathname: 'clothing/raw/raw.jpg' })
     vi.mocked(wardrobe.uploadClothingItem).mockResolvedValue(baseItem)
 
     const response = await POST(req)
@@ -65,47 +64,32 @@ describe('POST /api/clothes', () => {
 
     expect(response.status).toBe(201)
     expect(body.id).toBe('item-1')
-    expect(wardrobe.uploadClothingItem).toHaveBeenCalledWith(mockFile)
+    expect(wardrobe.uploadClothingItem).toHaveBeenCalledWith('https://blob.url/raw.jpg', 'clothing/raw/raw.jpg')
   })
 
-  it('returns 400 when no file is provided', async () => {
-    const req = makeRequest({ get: vi.fn().mockReturnValue(null) })
+  it('returns 400 when blobUrl is missing', async () => {
+    const req = makeRequest({ blobPathname: 'clothing/raw/raw.jpg' })
 
     const response = await POST(req)
     const body = await response.json()
 
     expect(response.status).toBe(400)
-    expect(body.error).toBe('No file provided')
+    expect(body.error).toMatch(/required/)
     expect(wardrobe.uploadClothingItem).not.toHaveBeenCalled()
   })
 
-  it('returns 413 when file is too large', async () => {
-    const mockFile = new File(['data'], 'huge.jpg', { type: 'image/jpeg' })
-    const req = makeRequest({ get: vi.fn().mockReturnValue(mockFile) })
-    vi.mocked(wardrobe.uploadClothingItem).mockRejectedValue(new Error('File too large. Maximum size is 10MB'))
+  it('returns 400 when blobPathname is missing', async () => {
+    const req = makeRequest({ blobUrl: 'https://blob.url/raw.jpg' })
 
     const response = await POST(req)
     const body = await response.json()
 
-    expect(response.status).toBe(413)
-    expect(body.error).toMatch(/too large/i)
-  })
-
-  it('returns 429 when wardrobe is full', async () => {
-    const mockFile = new File(['data'], 'shirt.jpg', { type: 'image/jpeg' })
-    const req = makeRequest({ get: vi.fn().mockReturnValue(mockFile) })
-    vi.mocked(wardrobe.uploadClothingItem).mockRejectedValue(new Error('Wardrobe is full. Maximum 150 items allowed.'))
-
-    const response = await POST(req)
-    const body = await response.json()
-
-    expect(response.status).toBe(429)
-    expect(body.error).toMatch(/full/i)
+    expect(response.status).toBe(400)
+    expect(wardrobe.uploadClothingItem).not.toHaveBeenCalled()
   })
 
   it('returns 500 on unexpected error', async () => {
-    const mockFile = new File(['data'], 'shirt.jpg', { type: 'image/jpeg' })
-    const req = makeRequest({ get: vi.fn().mockReturnValue(mockFile) })
+    const req = makeRequest({ blobUrl: 'https://blob.url/raw.jpg', blobPathname: 'clothing/raw/raw.jpg' })
     vi.mocked(wardrobe.uploadClothingItem).mockRejectedValue(new Error('Unexpected database error'))
 
     const response = await POST(req)

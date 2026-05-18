@@ -81,8 +81,3 @@ export async function deleteClothingItem(id: string): Promise<void> {
   await sql`DELETE FROM clothing_items WHERE id = ${id}`;
 }
 
-export async function getClothingItemCount(): Promise<number> {
-  await ensureInitialized();
-  const { rows } = await sql`SELECT COUNT(*)::int AS count FROM clothing_items`;
-  return rows[0].count as number;
-}

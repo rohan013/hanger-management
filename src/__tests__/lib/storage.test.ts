@@ -1,13 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
-import { uploadImage, signImageUrl, deleteImage, getBlobUsageBytes } from '@/lib/storage'
+import { uploadImage, signImageUrl, deleteImage } from '@/lib/storage'
 
 vi.mock('@vercel/blob', () => ({
   put: vi.fn(),
   del: vi.fn(),
-  list: vi.fn(),
 }))
 
-import { put, del, list } from '@vercel/blob'
+import { put, del } from '@vercel/blob'
 
 describe('uploadImage', () => {
   it('calls put with private access and returns url and pathname', async () => {
@@ -63,35 +62,5 @@ describe('deleteImage', () => {
     vi.mocked(del).mockResolvedValue(undefined)
     await deleteImage('clothing/img.jpg')
     expect(del).toHaveBeenCalledWith('clothing/img.jpg')
-  })
-})
-
-describe('getBlobUsageBytes', () => {
-  it('returns sum of all blob sizes', async () => {
-    vi.mocked(list).mockResolvedValue({
-      blobs: [
-        { size: 1024 * 100 } as any,
-        { size: 1024 * 200 } as any,
-        { size: 1024 * 50 } as any,
-      ],
-      cursor: undefined,
-      hasMore: false,
-    })
-
-    const result = await getBlobUsageBytes()
-    expect(result).toBe(1024 * 350)
-    expect(list).toHaveBeenCalledWith({ prefix: 'clothing/' })
-  })
-
-  it('returns 0 when blob list is empty', async () => {
-    vi.mocked(list).mockResolvedValue({ blobs: [], cursor: undefined, hasMore: false })
-    const result = await getBlobUsageBytes()
-    expect(result).toBe(0)
-  })
-
-  it('returns 0 when list throws an error', async () => {
-    vi.mocked(list).mockRejectedValue(new Error('Network error'))
-    const result = await getBlobUsageBytes()
-    expect(result).toBe(0)
   })
 })

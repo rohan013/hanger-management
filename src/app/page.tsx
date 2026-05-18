@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import ClothingCard from '@/components/ClothingCard';
 import EditItemModal from '@/components/EditItemModal';
-import UsageWarning from '@/components/UsageWarning';
 import { fetchWardrobe } from '@/lib/api/client';
 import type { ClothingItem } from '@/types';
 
@@ -66,8 +65,6 @@ export default function WardrobePage() {
           Add
         </Link>
       </div>
-
-      <UsageWarning />
 
       {/* Loading skeleton */}
       {loading && (

@@ -4,7 +4,6 @@ import * as dbClothes from '@/lib/db/clothes'
 import * as storage from '@/lib/storage'
 import * as image from '@/lib/image'
 import * as aiProvider from '@/lib/ai/provider'
-import { STORAGE_CONFIG } from '@/lib/config'
 import type { ClothingItem } from '@/types'
 
 vi.mock('@/lib/db/clothes')
@@ -59,21 +58,21 @@ describe('uploadClothingItem', () => {
   const mockAnalyzeClothing = vi.fn()
   const mockAIProvider = { analyzeClothing: mockAnalyzeClothing, recommendOutfit: vi.fn() }
 
-  const mockFile = {
-    size: 1024,
-    name: 'shirt.jpg',
-    type: 'image/jpeg',
-    arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
-  } as unknown as File
+  const blobUrl = 'https://public.blob.vercel-storage.com/clothing/raw/shirt.jpg'
+  const blobPathname = 'clothing/raw/shirt.jpg'
 
   beforeEach(() => {
-    vi.mocked(dbClothes.getClothingItemCount).mockResolvedValue(0)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
+    }))
     vi.mocked(image.removeBackground).mockResolvedValue(Buffer.from('no-bg'))
     vi.mocked(image.processImage).mockResolvedValue({ buffer: Buffer.from('compressed'), format: 'jpeg' })
     vi.mocked(storage.uploadImage).mockResolvedValue({
       url: 'https://abc123.blob.vercel-storage.com/clothing/shirt.jpg',
       pathname: 'clothing/shirt.jpg',
     })
+    vi.mocked(storage.deleteImage).mockResolvedValue(undefined)
     mockAnalyzeClothing.mockResolvedValue({
       category: 'tops',
       colors: ['#FF0000'],
@@ -87,59 +86,45 @@ describe('uploadClothingItem', () => {
   })
 
   it('runs full upload pipeline and returns item with signed URL', async () => {
-    const result = await uploadClothingItem(mockFile)
+    const result = await uploadClothingItem(blobUrl, blobPathname)
 
     expect(image.removeBackground).toHaveBeenCalled()
     expect(image.processImage).toHaveBeenCalled()
     expect(storage.uploadImage).toHaveBeenCalled()
+    expect(storage.deleteImage).toHaveBeenCalledWith(blobPathname)
     expect(mockAnalyzeClothing).toHaveBeenCalled()
     expect(dbClothes.insertClothingItem).toHaveBeenCalled()
     expect(result.image_url).toBe('/api/image?url=signed')
   })
 
-  it('throws and skips pipeline when file exceeds size limit', async () => {
-    const bigFile = { ...mockFile, size: STORAGE_CONFIG.MAX_IMAGE_UPLOAD_BYTES + 1 } as unknown as File
-    await expect(uploadClothingItem(bigFile)).rejects.toThrow('too large')
-    expect(image.processImage).not.toHaveBeenCalled()
-    expect(storage.uploadImage).not.toHaveBeenCalled()
-  })
-
-  it('throws when wardrobe is at capacity', async () => {
-    vi.mocked(dbClothes.getClothingItemCount).mockResolvedValue(STORAGE_CONFIG.MAX_CLOTHING_ITEMS)
-    await expect(uploadClothingItem(mockFile)).rejects.toThrow('full')
+  it('throws when blob download fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+    await expect(uploadClothingItem(blobUrl, blobPathname)).rejects.toThrow('Failed to download')
   })
 
   it('uses .jpg extension for JPEG output', async () => {
     vi.mocked(image.processImage).mockResolvedValue({ buffer: Buffer.from('x'), format: 'jpeg' })
-    await uploadClothingItem(mockFile)
+    await uploadClothingItem(blobUrl, blobPathname)
     const [filename] = vi.mocked(storage.uploadImage).mock.calls[0]
     expect(filename).toMatch(/\.jpg$/)
   })
 
   it('uses .png extension for PNG output', async () => {
     vi.mocked(image.processImage).mockResolvedValue({ buffer: Buffer.from('x'), format: 'png' })
-    await uploadClothingItem(mockFile)
+    await uploadClothingItem(blobUrl, blobPathname)
     const [filename] = vi.mocked(storage.uploadImage).mock.calls[0]
     expect(filename).toMatch(/\.png$/)
   })
 
-  it('sanitizes special characters in filename', async () => {
-    const dirtyFile = { ...mockFile, name: 'my shirt (2) #1.jpg' } as unknown as File
-    await uploadClothingItem(dirtyFile)
-    const [filename] = vi.mocked(storage.uploadImage).mock.calls[0]
-    expect(filename).not.toMatch(/[()# ]/)
-    expect(filename).toMatch(/^clothing\//)
-  })
-
   it('passes image/jpeg MIME type to AI when processing JPEG', async () => {
     vi.mocked(image.processImage).mockResolvedValue({ buffer: Buffer.from('x'), format: 'jpeg' })
-    await uploadClothingItem(mockFile)
+    await uploadClothingItem(blobUrl, blobPathname)
     expect(mockAnalyzeClothing).toHaveBeenCalledWith(expect.any(Buffer), 'image/jpeg')
   })
 
   it('passes image/png MIME type to AI when processing PNG', async () => {
     vi.mocked(image.processImage).mockResolvedValue({ buffer: Buffer.from('x'), format: 'png' })
-    await uploadClothingItem(mockFile)
+    await uploadClothingItem(blobUrl, blobPathname)
     expect(mockAnalyzeClothing).toHaveBeenCalledWith(expect.any(Buffer), 'image/png')
   })
 
@@ -153,7 +138,7 @@ describe('uploadClothingItem', () => {
     }
     mockAnalyzeClothing.mockResolvedValue(analysis)
 
-    await uploadClothingItem(mockFile)
+    await uploadClothingItem(blobUrl, blobPathname)
 
     expect(dbClothes.insertClothingItem).toHaveBeenCalledWith(
       expect.objectContaining(analysis)

@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { STORAGE_CONFIG } from '@/lib/config';
 import { uploadClothing } from '@/lib/api/client';
 
 type FileStatus = 'pending' | 'uploading' | 'done' | 'error';
@@ -40,7 +39,6 @@ export default function UploadPage() {
 
     for (const file of incoming) {
       if (!file.type.startsWith('image/')) continue;
-      if (file.size > STORAGE_CONFIG.MAX_IMAGE_UPLOAD_BYTES) continue;
       valid.push({
         file,
         preview: URL.createObjectURL(file),
@@ -133,7 +131,7 @@ export default function UploadPage() {
             </svg>
           </div>
           <p className="text-gray-700 font-semibold mb-1">Tap to select photos</p>
-          <p className="text-gray-400 text-sm">Select multiple items at once — JPG, PNG, HEIC, WebP up to 10MB each</p>
+          <p className="text-gray-400 text-sm">Select multiple items at once — JPG, PNG, HEIC, WebP up to 20MB each</p>
         </div>
       ) : (
         /* File grid */

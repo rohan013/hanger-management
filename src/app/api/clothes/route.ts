@@ -13,15 +13,15 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    const item = await uploadClothingItem(file);
+    const { blobUrl, blobPathname } = await request.json();
+    if (!blobUrl || !blobPathname) {
+      return NextResponse.json({ error: 'blobUrl and blobPathname are required' }, { status: 400 });
+    }
+    const item = await uploadClothingItem(blobUrl, blobPathname);
     return NextResponse.json(item, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Upload failed';
-    const status = message.includes('too large') ? 413 : message.includes('full') ? 429 : 500;
-    logger.error('POST /api/clothes failed', { error: message, status });
-    return NextResponse.json({ error: message }, { status });
+    logger.error('POST /api/clothes failed', { error: message });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

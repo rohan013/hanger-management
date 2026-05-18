@@ -1,4 +1,5 @@
-import type { ClothingItem, RecommendationWithItems, UsageStats } from '@/types';
+import { upload } from '@vercel/blob/client';
+import type { ClothingItem, RecommendationWithItems } from '@/types';
 
 export async function fetchWardrobe(): Promise<ClothingItem[]> {
   const res = await fetch('/api/clothes');
@@ -7,9 +8,15 @@ export async function fetchWardrobe(): Promise<ClothingItem[]> {
 }
 
 export async function uploadClothing(file: File): Promise<ClothingItem> {
-  const body = new FormData();
-  body.append('file', file);
-  const res = await fetch('/api/clothes', { method: 'POST', body });
+  const blob = await upload(file.name, file, {
+    access: 'public',
+    handleUploadUrl: '/api/upload',
+  });
+  const res = await fetch('/api/clothes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ blobUrl: blob.url, blobPathname: blob.pathname }),
+  });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Upload failed');
   return data;
@@ -51,8 +58,3 @@ export async function regenerateRecommendation(): Promise<RecommendationWithItem
   return data;
 }
 
-export async function fetchUsage(): Promise<UsageStats> {
-  const res = await fetch('/api/usage');
-  if (!res.ok) throw new Error('Failed to fetch usage');
-  return res.json();
-}

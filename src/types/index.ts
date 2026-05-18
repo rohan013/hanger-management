@@ -33,10 +33,3 @@ export interface RecommendationWithItems extends OutfitRecommendation {
   items: ClothingItem[];
 }
 
-export interface UsageStats {
-  blobUsageBytes: number;
-  maxBlobBytes: number;
-  itemCount: number;
-  maxItems: number;
-  percentUsed: number;
-}
