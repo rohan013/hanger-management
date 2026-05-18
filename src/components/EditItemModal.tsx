@@ -152,7 +152,7 @@ export default function EditItemModal({ item, onClose, onSave, onDelete }: EditI
                 alt={item.description || item.category}
                 fill
                 className="object-cover"
-                sizes="64px"
+                unoptimized
               />
             </div>
             <div className="flex-1">
