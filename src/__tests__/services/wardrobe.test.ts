@@ -62,9 +62,12 @@ describe('uploadClothingItem', () => {
   const blobPathname = 'clothing/raw/shirt.jpg'
 
   beforeEach(() => {
-    vi.mocked(storage.downloadImage).mockResolvedValue(
-      new Response(new ArrayBuffer(1024), { status: 200 })
-    )
+    vi.mocked(storage.downloadImage).mockResolvedValue({
+      stream: new ReadableStream({
+        start(c) { c.enqueue(new Uint8Array([1, 2, 3])); c.close(); },
+      }),
+      contentType: 'image/jpeg',
+    })
     vi.mocked(image.removeBackground).mockResolvedValue(Buffer.from('no-bg'))
     vi.mocked(image.processImage).mockResolvedValue({ buffer: Buffer.from('compressed'), format: 'jpeg' })
     vi.mocked(storage.uploadImage).mockResolvedValue({
@@ -97,7 +100,7 @@ describe('uploadClothingItem', () => {
   })
 
   it('throws when blob download fails', async () => {
-    vi.mocked(storage.downloadImage).mockResolvedValue(new Response('error', { status: 500 }))
+    vi.mocked(storage.downloadImage).mockRejectedValue(new Error('Blob fetch failed: 403'))
     await expect(uploadClothingItem(blobUrl, blobPathname)).rejects.toThrow('Failed to download')
   })
 

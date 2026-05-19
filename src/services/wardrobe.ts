@@ -18,12 +18,11 @@ export async function listClothingItems(): Promise<ClothingItem[]> {
 
 export async function uploadClothingItem(blobUrl: string, blobPathname: string): Promise<ClothingItem> {
   logger.info('downloading raw upload', { blobPathname });
-  const response = await downloadImage(blobUrl);
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`Failed to download uploaded image: ${response.status} ${response.statusText}${body ? ` — ${body}` : ''}`);
-  }
-  const rawBuffer = Buffer.from(await response.arrayBuffer());
+  const { stream } = await downloadImage(blobUrl).catch((err) => {
+    logger.error('blob download failed', { blobPathname, error: err?.message });
+    throw new Error('Failed to download blob');
+  });
+  const rawBuffer = Buffer.from(await new Response(stream).arrayBuffer());
 
   logger.info('removing background', { blobPathname });
   const withoutBg = await removeBackground(rawBuffer);
@@ -31,13 +30,12 @@ export async function uploadClothingItem(blobUrl: string, blobPathname: string):
   logger.info('processing image', { blobPathname });
   const { buffer: compressed, format } = await processImage(withoutBg);
 
+  const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
   const filename = `clothing/${Date.now()}.${format === 'png' ? 'png' : 'jpg'}`;
   logger.info('uploading processed image to blob storage', { filename });
-  const { url, pathname } = await uploadImage(filename, compressed);
+  const { url, pathname } = await uploadImage(filename, compressed, mimeType);
 
   await deleteImage(blobPathname);
-
-  const mimeType = format === 'png' ? 'image/png' : 'image/jpeg';
   logger.info('analyzing clothing with AI', { filename });
   const analysis = await getAIProvider().analyzeClothing(compressed, mimeType);
   const item = await insertClothingItem({ ...analysis, image_url: url, blob_pathname: pathname });

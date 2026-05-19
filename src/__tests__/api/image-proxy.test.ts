@@ -1,17 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/image/route'
+import * as storage from '@/lib/storage'
 
-vi.mock('@vercel/blob')
-import { get } from '@vercel/blob'
-const mockGet = vi.mocked(get)
+vi.mock('@/lib/storage')
 
 beforeEach(() => {
   process.env.BLOB_READ_WRITE_TOKEN = 'test-token'
+  vi.mocked(storage.downloadImage).mockResolvedValue({
+    stream: new ReadableStream(),
+    contentType: 'image/jpeg',
+  })
 })
 
 afterEach(() => {
-  vi.clearAllMocks()
   delete process.env.BLOB_READ_WRITE_TOKEN
 })
 
@@ -49,37 +51,29 @@ describe('GET /api/image', () => {
     expect(response.status).toBe(403)
   })
 
-  it('proxies private blob and returns correct cache headers on success', async () => {
-    mockGet.mockResolvedValue({
-      statusCode: 200,
-      stream: new ReadableStream(),
-      headers: new Headers({ 'content-type': 'image/jpeg' }),
-      blob: { contentType: 'image/jpeg', url: blobUrl, downloadUrl: blobUrl, pathname: 'clothing/shirt.jpg', contentDisposition: '', cacheControl: '', uploadedAt: new Date(), etag: '"abc"', size: 100 },
-    } as any)
-
+  it('proxies image via downloadImage and returns cache headers on success', async () => {
     const response = await GET(makeRequest(blobUrl))
 
-    expect(mockGet).toHaveBeenCalledWith(blobUrl, { access: 'private' })
+    expect(storage.downloadImage).toHaveBeenCalledWith(blobUrl)
     expect(response.status).toBe(200)
     expect(response.headers.get('Cache-Control')).toBe('private, max-age=3600')
     expect(response.headers.get('Content-Type')).toBe('image/jpeg')
   })
 
   it('falls back to image/jpeg content-type when upstream omits it', async () => {
-    mockGet.mockResolvedValue({
-      statusCode: 200,
+    vi.mocked(storage.downloadImage).mockResolvedValue({
       stream: new ReadableStream(),
-      headers: new Headers(),
-      blob: { contentType: '', url: blobUrl, downloadUrl: blobUrl, pathname: 'clothing/shirt.jpg', contentDisposition: '', cacheControl: '', uploadedAt: new Date(), etag: '"abc"', size: 100 },
-    } as any)
+      contentType: '',
+    })
 
     const response = await GET(makeRequest(blobUrl))
     expect(response.headers.get('Content-Type')).toBe('image/jpeg')
   })
 
-  it('returns 404 when blob is not found', async () => {
-    mockGet.mockResolvedValue(null)
+  it('returns 502 when download fails', async () => {
+    vi.mocked(storage.downloadImage).mockRejectedValue(new Error('Blob fetch failed: 404'))
+
     const response = await GET(makeRequest(blobUrl))
-    expect(response.status).toBe(404)
+    expect(response.status).toBe(502)
   })
 })

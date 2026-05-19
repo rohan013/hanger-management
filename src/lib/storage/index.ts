@@ -9,10 +9,10 @@ export function signImageUrl(url: string): string {
   return `/api/image?url=${encodeURIComponent(url)}`;
 }
 
-export async function downloadImage(url: string): Promise<Response> {
+export async function downloadImage(url: string): Promise<{ stream: ReadableStream; contentType: string }> {
   const result = await get(url, { access: 'private' });
-  if (!result) return new Response('Not found', { status: 404 });
-  return new Response(result.stream, { status: result.statusCode });
+  if (result?.statusCode !== 200) throw new Error(`Blob fetch failed: ${JSON.stringify(result)}`);
+  return { stream: result.stream, contentType: result.blob.contentType };
 }
 
 export async function deleteImage(pathname: string): Promise<void> {
