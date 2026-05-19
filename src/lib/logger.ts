@@ -12,3 +12,12 @@ export const logger = {
   warn:  (msg: string, ctx?: Record<string, unknown>) => log('warn', msg, ctx),
   error: (msg: string, ctx?: Record<string, unknown>) => log('error', msg, ctx),
 };
+
+export function serializeError(err: unknown): Record<string, unknown> {
+  if (!(err instanceof Error)) return { message: String(err) };
+  return {
+    message: err.message,
+    stack: err.stack,
+    ...(err.cause != null ? { cause: err.cause instanceof Error ? err.cause.message : String(err.cause) } : {}),
+  };
+}

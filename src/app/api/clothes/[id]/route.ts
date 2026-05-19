@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { editClothingItem, removeClothingItem } from '@/services/wardrobe';
-import { logger } from '@/lib/logger';
+import { logger, serializeError } from '@/lib/logger';
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json(item);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Update failed';
-    logger.error('PATCH /api/clothes/[id] failed', { id: params.id, error: message });
+    logger.error('PATCH /api/clothes/[id] failed', { id: params.id, ...serializeError(err) });
     return NextResponse.json({ error: message }, { status: message === 'Item not found' ? 404 : 500 });
   }
 }
@@ -29,7 +29,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ success: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Delete failed';
-    logger.error('DELETE /api/clothes/[id] failed', { id: params.id, error: message });
+    logger.error('DELETE /api/clothes/[id] failed', { id: params.id, ...serializeError(err) });
     return NextResponse.json({ error: message }, { status: message === 'Item not found' ? 404 : 500 });
   }
 }
