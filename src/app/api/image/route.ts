@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDownloadUrl } from '@vercel/blob';
 
 const ALLOWED_HOST = '.blob.vercel-storage.com';
 
@@ -17,9 +18,8 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
-  const response = await fetch(parsed.toString(), {
-    headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` },
-  });
+  const signedUrl = await getDownloadUrl(parsed.toString());
+  const response = await fetch(signedUrl);
 
   if (!response.ok) return new NextResponse('Failed to fetch image', { status: response.status });
 
