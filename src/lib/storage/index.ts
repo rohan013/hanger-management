@@ -1,4 +1,4 @@
-import { put, del, getDownloadUrl } from '@vercel/blob';
+import { put, del, get } from '@vercel/blob';
 
 export async function uploadImage(pathname: string, buffer: Buffer, contentType = 'image/jpeg'): Promise<{ url: string; pathname: string }> {
   const blob = await put(pathname, buffer, { access: 'private', contentType });
@@ -10,8 +10,9 @@ export function signImageUrl(url: string): string {
 }
 
 export async function downloadImage(url: string): Promise<Response> {
-  const signedUrl = await getDownloadUrl(url);
-  return fetch(signedUrl);
+  const result = await get(url, { access: 'private' });
+  if (!result) return new Response('Not found', { status: 404 });
+  return new Response(result.stream, { status: result.statusCode });
 }
 
 export async function deleteImage(pathname: string): Promise<void> {

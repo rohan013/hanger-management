@@ -2,15 +2,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from '@/app/api/image/route'
 
-const mockFetch = vi.fn()
+vi.mock('@vercel/blob')
+import { get } from '@vercel/blob'
+const mockGet = vi.mocked(get)
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', mockFetch)
   process.env.BLOB_READ_WRITE_TOKEN = 'test-token'
 })
 
 afterEach(() => {
-  vi.unstubAllGlobals()
+  vi.clearAllMocks()
   delete process.env.BLOB_READ_WRITE_TOKEN
 })
 
@@ -48,40 +49,36 @@ describe('GET /api/image', () => {
     expect(response.status).toBe(403)
   })
 
-  it('proxies image with authorization header and cache headers on success', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      body: null,
-      headers: { get: vi.fn().mockReturnValue('image/jpeg') },
-    })
+  it('proxies private blob and returns correct cache headers on success', async () => {
+    mockGet.mockResolvedValue({
+      statusCode: 200,
+      stream: new ReadableStream(),
+      headers: new Headers({ 'content-type': 'image/jpeg' }),
+      blob: { contentType: 'image/jpeg', url: blobUrl, downloadUrl: blobUrl, pathname: 'clothing/shirt.jpg', contentDisposition: '', cacheControl: '', uploadedAt: new Date(), etag: '"abc"', size: 100 },
+    } as any)
 
     const response = await GET(makeRequest(blobUrl))
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      blobUrl,
-      expect.objectContaining({
-        headers: { Authorization: 'Bearer test-token' },
-      })
-    )
+    expect(mockGet).toHaveBeenCalledWith(blobUrl, { access: 'private' })
     expect(response.status).toBe(200)
     expect(response.headers.get('Cache-Control')).toBe('private, max-age=3600')
     expect(response.headers.get('Content-Type')).toBe('image/jpeg')
   })
 
   it('falls back to image/jpeg content-type when upstream omits it', async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      body: null,
-      headers: { get: vi.fn().mockReturnValue(null) },
-    })
+    mockGet.mockResolvedValue({
+      statusCode: 200,
+      stream: new ReadableStream(),
+      headers: new Headers(),
+      blob: { contentType: '', url: blobUrl, downloadUrl: blobUrl, pathname: 'clothing/shirt.jpg', contentDisposition: '', cacheControl: '', uploadedAt: new Date(), etag: '"abc"', size: 100 },
+    } as any)
 
     const response = await GET(makeRequest(blobUrl))
     expect(response.headers.get('Content-Type')).toBe('image/jpeg')
   })
 
-  it('returns upstream error status when fetch fails', async () => {
-    mockFetch.mockResolvedValue({ ok: false, status: 404, body: null })
-
+  it('returns 404 when blob is not found', async () => {
+    mockGet.mockResolvedValue(null)
     const response = await GET(makeRequest(blobUrl))
     expect(response.status).toBe(404)
   })

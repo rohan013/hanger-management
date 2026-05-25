@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDownloadUrl } from '@vercel/blob';
+import { get } from '@vercel/blob';
 
 const ALLOWED_HOST = '.blob.vercel-storage.com';
 
@@ -18,14 +18,12 @@ export async function GET(request: NextRequest) {
     return new NextResponse('Forbidden', { status: 403 });
   }
 
-  const signedUrl = await getDownloadUrl(parsed.toString());
-  const response = await fetch(signedUrl);
+  const result = await get(parsed.toString(), { access: 'private' });
+  if (!result) return new NextResponse('Not found', { status: 404 });
 
-  if (!response.ok) return new NextResponse('Failed to fetch image', { status: response.status });
-
-  return new NextResponse(response.body, {
+  return new NextResponse(result.stream, {
     headers: {
-      'Content-Type': response.headers.get('content-type') || 'image/jpeg',
+      'Content-Type': result.blob.contentType || 'image/jpeg',
       'Cache-Control': 'private, max-age=3600',
     },
   });

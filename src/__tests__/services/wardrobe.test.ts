@@ -62,10 +62,9 @@ describe('uploadClothingItem', () => {
   const blobPathname = 'clothing/raw/shirt.jpg'
 
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      arrayBuffer: vi.fn().mockResolvedValue(new ArrayBuffer(1024)),
-    }))
+    vi.mocked(storage.downloadImage).mockResolvedValue(
+      new Response(new ArrayBuffer(1024), { status: 200 })
+    )
     vi.mocked(image.removeBackground).mockResolvedValue(Buffer.from('no-bg'))
     vi.mocked(image.processImage).mockResolvedValue({ buffer: Buffer.from('compressed'), format: 'jpeg' })
     vi.mocked(storage.uploadImage).mockResolvedValue({
@@ -98,7 +97,7 @@ describe('uploadClothingItem', () => {
   })
 
   it('throws when blob download fails', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+    vi.mocked(storage.downloadImage).mockResolvedValue(new Response('error', { status: 500 }))
     await expect(uploadClothingItem(blobUrl, blobPathname)).rejects.toThrow('Failed to download')
   })
 
