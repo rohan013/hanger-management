@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
-import type { WardrobeAIProvider } from './types';
+import type { WardrobeAIProvider, WeatherContext } from './types';
 import type { ClothingAnalysis, ClothingItem } from '@/types';
 import { logger } from '@/lib/logger';
 
@@ -61,7 +61,7 @@ Be accurate with hex colors - sample the actual dominant colors in the image. In
     }
   }
 
-  async recommendOutfit(items: ClothingItem[]): Promise<{
+  async recommendOutfit(items: ClothingItem[], context?: WeatherContext): Promise<{
     item_ids: string[];
     explanation: string;
     color_scheme: string;
@@ -79,21 +79,40 @@ Be accurate with hex colors - sample the actual dominant colors in the image. In
       tags: item.tags,
     }));
 
-    const prompt = `You are a fashion stylist. Given these wardrobe items, recommend a stylish outfit for today.
+    const weatherLine = context
+      ? `Current Seattle conditions: ${context.temperatureF}°F (feels like ${context.apparentF}°F), ${context.conditions}, wind ${context.windMph} mph.`
+      : '';
+
+    const seasonLine = context
+      ? `Today is ${context.month}, ${context.season} in Seattle, Washington. Time of day: ${context.timeOfDay}.`
+      : 'Consider the current season when selecting items.';
+
+    const prompt = `You are an expert fashion stylist. ${seasonLine}
+${weatherLine}
+
+${context ? `Consider when selecting the outfit:
+- Temperature and feel — recommend layers if cool/cold, lighter pieces if warm
+- Precipitation — if it's raining or drizzling, prefer water-resistant or waterproof outerwear
+- Wind — factor in warmth needs
+- Time of day — morning/daytime outfits should be practical; evening outfits can be more relaxed or elevated` : ''}
+
+Rules:
+- Pick exactly 1 top (or 1 dress/jumpsuit), 1 bottom (skip if dress/jumpsuit chosen), optionally 1 outerwear and 1 pair of shoes, and optionally 1-2 accessories.
+- Never select two items from the same category, except accessories.
+- Only use IDs from the wardrobe list below.
+- Prioritise colour harmony.
 
 Wardrobe items:
 ${JSON.stringify(itemsSummary, null, 2)}
 
 Respond with ONLY a valid JSON object (no markdown, no code blocks):
 {
-  "item_ids": ["array of 2-4 item IDs from the wardrobe that make a complete outfit"],
-  "explanation": "friendly explanation of why this outfit works well together, 2-3 sentences",
+  "item_ids": ["2-5 item IDs forming a complete outfit"],
+  "explanation": "2-3 friendly sentences on why this outfit works and suits the current weather and time of day",
   "color_scheme": "one of: monochromatic, complementary, analogous, triadic, neutral, contrast",
-  "color_theory_description": "1-2 sentences explaining the color theory behind this outfit combination",
-  "palette_colors": ["array of 3-5 hex color codes representing the full color palette of the outfit"]
-}
-
-Select items that work well together stylistically and for the current season (May, spring). Prioritize color harmony.`;
+  "color_theory_description": "1-2 sentences explaining the colour theory behind this outfit combination",
+  "palette_colors": ["3-5 hex color codes representing the outfit palette"]
+}`;
 
     logger.info('calling Gemini: recommend outfit', { model: this.modelName, itemCount: items.length });
     const result = await model.generateContent(prompt);

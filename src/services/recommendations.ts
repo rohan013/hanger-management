@@ -1,5 +1,7 @@
 import { getAIProvider } from '@/lib/ai/provider';
 import { getAllClothingItems, getClothingItemById } from '@/lib/db/clothes';
+import { getSeattleWeather } from '@/lib/weather';
+import { logger } from '@/lib/logger';
 import { signImageUrl } from '@/lib/storage';
 import {
   getTodaysRecommendation,
@@ -27,7 +29,12 @@ export async function generateRecommendation(): Promise<RecommendationWithItems>
   const allItems = await getAllClothingItems();
   if (allItems.length === 0) throw new Error('No clothing items in wardrobe. Upload some items first!');
   await deleteTodaysRecommendation();
-  const result = await getAIProvider().recommendOutfit(allItems);
+  const context = await getSeattleWeather().catch(err => {
+    logger.warn('Failed to fetch Seattle weather, proceeding without context', { error: err?.message });
+    return undefined;
+  });
+  if (context) logger.info('Weather context fetched', { ...context });
+  const result = await getAIProvider().recommendOutfit(allItems, context);
   const rec = await insertRecommendation(result);
   return hydrateItems(rec);
 }
