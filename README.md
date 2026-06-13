@@ -2,6 +2,13 @@
 
 A mobile-first wardrobe app. Upload photos of your clothes, get AI-powered daily outfit recommendations with color wheel explanations.
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/wardrobe.png" alt="Wardrobe grid view" width="280" />
+  <img src="docs/screenshots/today-outfit.png" alt="Today's outfit recommendation" width="280" />
+</p>
+
 ## Features
 
 - Upload clothing photos — AI (Gemini) auto-detects category, colors, and tags
