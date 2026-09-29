@@ -25,3 +25,9 @@ yarn-debug.log*
 yarn-error.log*
 .vercel
 .env*.local
+
+# local data from the self-hosted build
+data/
+
+# test coverage
+coverage/

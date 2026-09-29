@@ -1,3 +1,5 @@
+import { APP_TIMEZONE } from './config';
+
 export interface WeatherContext {
   temperatureF: number;
   apparentF: number;
@@ -47,7 +49,7 @@ export async function getSeattleWeather(): Promise<WeatherContext> {
     '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation' +
     '&temperature_unit=fahrenheit' +
     '&wind_speed_unit=mph' +
-    '&timezone=America%2FLos_Angeles';
+    `&timezone=${encodeURIComponent(APP_TIMEZONE)}`;
 
   const res = await fetch(url, { next: { revalidate: 1800 } });
   if (!res.ok) throw new Error(`Open-Meteo fetch failed: ${res.status}`);
@@ -55,7 +57,7 @@ export async function getSeattleWeather(): Promise<WeatherContext> {
   const data = await res.json();
   const c = data.current;
 
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: APP_TIMEZONE }));
   const hour = now.getHours();
   const month = now.getMonth(); // 0-indexed
 
