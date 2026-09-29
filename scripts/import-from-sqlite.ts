@@ -2,7 +2,7 @@
  * One-off import of the self-hosted SQLite wardrobe into Postgres and Vercel Blob.
  *
  * Usage:
- *   node --env-file=.env.vercel scripts/import-from-sqlite.ts [--dry-run] [data-dir]
+ *   node --env-file=.env.vercel.local scripts/import-from-sqlite.ts [--dry-run] [data-dir]
  *
  * Requires POSTGRES_URL and BLOB_READ_WRITE_TOKEN. data-dir defaults to ./data
  * and must contain wardrobe.db and images/.
